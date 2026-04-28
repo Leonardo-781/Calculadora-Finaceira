@@ -1,0 +1,158 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>calFin | Calculadora Financeira</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com" />
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+  <link href="https://fonts.googleapis.com/css2?family=Orbitron:wght@500;700&family=Plus+Jakarta+Sans:wght@400;500;700;800&display=swap" rel="stylesheet" />
+  <link rel="stylesheet" href="style.css" />
+</head>
+<body>
+  <div class="calc-shell">
+    <header class="hero">
+      <div class="hero__bg-shape hero__bg-shape--one"></div>
+      <div class="hero__bg-shape hero__bg-shape--two"></div>
+      <h1>Calculadora Financeira Completa</h1>
+      <p>
+        Pagina unica criada a partir dos programas da pasta <strong>calFin</strong>.
+        Todos os modulos reunidos em uma interface com cara de calculadora.
+      </p>
+      <nav class="quick-nav">
+        <a href="#juros-simples">Juros Simples</a>
+        <a href="#juros-compostos">Juros Compostos</a>
+        <a href="#desc-comercial">Desc. Comercial</a>
+        <a href="#desc-racional">Desc. Racional</a>
+        <a href="#sac">SAC</a>
+        <a href="#taxas">Taxas</a>
+        <a href="#fvp">FVP (Price)</a>
+        <a href="#vpl">VPL</a>
+      </nav>
+    </header>
+
+    <section class="console" aria-label="Painel da calculadora financeira">
+      <div class="console__brand">
+        <span>calFin FC-900</span>
+        <small>Financial Calculator</small>
+      </div>
+      <div class="console__screen">
+        <p>MODE: FINANCE</p>
+        <strong>READY</strong>
+      </div>
+      <div class="console__keys">
+        <a class="console__key" href="#juros-simples">JS</a>
+        <a class="console__key" href="#juros-compostos">JC</a>
+        <a class="console__key" href="#desc-comercial">DCC</a>
+        <a class="console__key" href="#desc-racional">DRC</a>
+        <a class="console__key" href="#sac">SAC</a>
+        <a class="console__key" href="#taxas">TE</a>
+        <a class="console__key" href="#fvp">FVP</a>
+        <a class="console__key" href="#vpl">VPL</a>
+      </div>
+    </section>
+
+    <main class="grid">
+    <section id="juros-simples" class="card">
+      <h2>Juros Simples</h2>
+      <label>Operacao</label>
+      <select id="js-op"></select>
+      <div id="js-fields" class="fields"></div>
+      <button data-action="js">Calcular</button>
+      <p id="js-result" class="result"></p>
+    </section>
+
+    <section id="juros-compostos" class="card">
+      <h2>Juros Compostos</h2>
+      <label>Operacao</label>
+      <select id="jc-op"></select>
+      <div id="jc-fields" class="fields"></div>
+      <button data-action="jc">Calcular</button>
+      <p id="jc-result" class="result"></p>
+    </section>
+
+    <section id="desc-comercial" class="card">
+      <h2>Desconto Comercial Composto</h2>
+      <label>Operacao</label>
+      <select id="dcc-op"></select>
+      <div id="dcc-fields" class="fields"></div>
+      <button data-action="dcc">Calcular</button>
+      <p id="dcc-result" class="result"></p>
+    </section>
+
+    <section id="desc-racional" class="card">
+      <h2>Desconto Racional Composto</h2>
+      <label>Operacao</label>
+      <select id="drc-op"></select>
+      <div id="drc-fields" class="fields"></div>
+      <button data-action="drc">Calcular</button>
+      <p id="drc-result" class="result"></p>
+    </section>
+
+    <section id="sac" class="card">
+      <h2>SAC - Sistema de Amortizacao Constante</h2>
+      <label>Operacao</label>
+      <select id="sac-op"></select>
+      <div id="sac-fields" class="fields"></div>
+      <button data-action="sac">Calcular</button>
+      <p id="sac-result" class="result"></p>
+    </section>
+
+    <section id="taxas" class="card">
+      <h2>Taxas Equivalentes</h2>
+      <label>Operacao</label>
+      <select id="te-op"></select>
+      <div id="te-fields" class="fields"></div>
+      <button data-action="te">Calcular</button>
+      <p id="te-result" class="result"></p>
+    </section>
+
+    <section id="fvp" class="card">
+      <h2>FVP (Price)</h2>
+      <div class="fields">
+        <label for="fvp-n">Numero de parcelas (n)</label>
+        <input id="fvp-n" type="number" step="any" />
+        <label for="fvp-i">Taxa unitaria (i)</label>
+        <input id="fvp-i" type="number" step="any" />
+        <label for="fvp-vp">Valor presente (VP)</label>
+        <input id="fvp-vp" type="number" step="any" />
+        <label for="fvp-mult">Multiplicar por</label>
+        <input id="fvp-mult" type="number" step="any" value="1" />
+      </div>
+      <button data-action="fvp">Calcular</button>
+      <p id="fvp-result" class="result"></p>
+    </section>
+
+    <section id="vpl" class="card card--wide">
+      <h2>VPL - Valor Presente Liquido</h2>
+      <div class="fields">
+        <label for="vpl-i0">Investimento inicial (I)</label>
+        <input id="vpl-i0" type="number" step="any" />
+        <label for="vpl-i">Taxa (i)</label>
+        <input id="vpl-i" type="number" step="any" />
+        <label for="vpl-n">Tempo (n)</label>
+        <input id="vpl-n" type="number" step="1" min="1" />
+        <label for="vpl-fluxos">Fluxos de caixa (separados por virgula)</label>
+        <textarea id="vpl-fluxos" rows="3" placeholder="Ex: 500, 500, 700"></textarea>
+        <label class="checkbox-line">
+          <input id="vpl-tem-vr" type="checkbox" />
+          Tem valor residual
+        </label>
+        <label for="vpl-vr">Valor residual (VR)</label>
+        <input id="vpl-vr" type="number" step="any" disabled />
+        <label for="vpl-periodo-vr">Periodo do VR</label>
+        <input id="vpl-periodo-vr" type="number" step="1" min="1" disabled />
+      </div>
+      <button data-action="vpl">Calcular</button>
+      <p id="vpl-result" class="result"></p>
+    </section>
+    </main>
+  </div>
+
+  <footer>
+    <small>Baseado nos 8 programas C da pasta calFin.</small>
+  </footer>
+
+  <script src="app.js"></script>
+</body>
+</html>

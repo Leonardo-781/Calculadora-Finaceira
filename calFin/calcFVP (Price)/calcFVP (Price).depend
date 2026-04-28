@@ -1,0 +1,6 @@
+# depslib dependency file v1.0
+1672778534 source:c:\users\clesi\onedrive\Área de trabalho\ufu\5ºp\mfai\calcfvp (price)\main.c
+	<stdio.h>
+	<stdlib.h>
+	<math.h>
+

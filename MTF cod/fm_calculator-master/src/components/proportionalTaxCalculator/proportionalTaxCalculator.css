@@ -1,0 +1,88 @@
+.taxa-proporcional-container{
+    display: flex;
+    align-items: center;
+    flex-direction: column;
+    margin: 3rem auto;
+    padding: 2rem;
+    border-radius: 20px;
+    background-color: #F7F7F7;
+    box-shadow: 5px 5px 10px #8f8ab1;
+}
+
+.taxa-proporcional-container h1{
+    color: #580EF6;
+    margin-bottom: 1rem;
+}
+
+.taxa-proporcional-data-input{
+    padding: 0.5rem;
+}
+
+.taxa-proporcional-data-input label{
+    padding-right: 1rem;
+    font-size: large;
+} 
+
+.taxa-proporcional-data-input input{
+    float: right;
+    width: 150px;
+    height: 25px;
+    border: none;
+    border-radius: 5px;
+    box-shadow: 1px 1px 3px #3D3A50;
+    text-align: center;
+    font-weight: thin;
+    font-style: italic;
+    cursor: pointer;
+}
+
+.taxa-proporcional-container input:focus{
+    box-shadow: 0px 0px 10px #3D3A50;
+    outline: none;
+}
+
+.radio-btn {
+    padding: 0.5rem;
+    border: 1px  solid #3D3A50;
+    margin: 5px;
+    border-radius: 10px;
+    padding: auto;
+}
+
+.radio-btn h4{
+    margin-bottom: 1rem;
+    text-align: center;
+}
+
+.radio-btn label{
+    font-size: large;
+}
+
+.radio-btn input{
+    border-radius: 50%;
+    float: right; 
+    accent-color: #3D3A50;
+    cursor: pointer;
+}
+
+.radio-btn input:focus {
+    box-shadow: none;
+}
+
+.taxa-proporcional-container button{
+    margin-top: 1rem;
+    width: 90%;
+    padding: 0.5rem;
+    font-size: large;
+    color: #f7f7f7;
+    letter-spacing: 2px;
+    background-color: #580ef6;
+    border-radius: 25px;
+    border: none;
+    transition: all 0.2s;
+    cursor: pointer;
+}
+
+.taxa-proporcional-container button:hover{
+    box-shadow: 2px 2px 8px #580ef6;
+}

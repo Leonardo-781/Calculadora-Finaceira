@@ -1,0 +1,9 @@
+# depslib dependency file v1.0
+1665066538 source:c:\users\clesi\onedrive\Área de trabalho\ufu\3ºp\mfai\calculadorafinanceira\main.c
+	<stdio.h>
+	<stdlib.h>
+
+1669910963 source:c:\users\clesi\onedrive\Área de trabalho\ufu\5ºp\mfai\calcfinanceirajurosimples\main.c
+	<stdio.h>
+	<stdlib.h>
+
