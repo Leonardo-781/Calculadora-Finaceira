@@ -80,6 +80,7 @@ const defs = {
     fieldsWrap: "te-fields",
     result: "te-result",
     ops: {
+      eq_comp: { label: "Equivalência de Taxa Composta Geral", inputs: ["ic"] },
       mm: { label: "Maior para Menor (Composta)", inputs: ["n", "ic"] },
       mM: { label: "Menor para Maior (Composta)", inputs: ["n", "ic"] },
       ef: { label: "Taxa Efetiva Composta (i = ik/k)", inputs: ["ik", "k"] },
@@ -167,7 +168,7 @@ function buildDynamicCalculator(key) {
     });
 
     // Se o resultado for taxa ou tempo (e não for SAC), adiciona o seletor do período do resultado
-    if (key !== "sac" && (select.value === "i" || select.value === "ic" || select.value === "ik" || select.value === "n" || select.value === "t")) {
+    if (key !== "sac" && (select.value === "i" || select.value === "ic" || select.value === "ik" || select.value === "n" || select.value === "t" || select.value === "eq_comp")) {
       const fieldGroup = document.createElement("div");
       fieldGroup.className = "field-group";
 
@@ -503,11 +504,32 @@ function calcTaxas() {
   if (op === "ef" && vals.k === 0) throw new Error("k nao pode ser zero.");
 
   let out;
-  if (op === "mm") out = Math.pow(1 + vals.ic / 100, 1 / vals.n) - 1;
-  if (op === "mM") out = Math.pow(1 + vals.ic / 100, vals.n) - 1;
-  if (op === "ef") out = (vals.ik / 100) / vals.k;
-  if (op === "js_ef") out = (vals.ic / 100) / (1 - (vals.ic / 100) * vals.n);
-  if (op === "js_dc") out = (vals.i / 100) / (1 + (vals.i / 100) * vals.n);
+  if (op === "eq_comp") {
+    const fromDays = periods.find(p => p.value === vals.ic_period)?.days || 30;
+    const toDays = periods.find(p => p.value === vals.out_period)?.days || 30;
+    out = Math.pow(1 + vals.ic / 100, toDays / fromDays) - 1;
+  }
+  else if (op === "mm") {
+    out = Math.pow(1 + vals.ic / 100, 1 / vals.n) - 1;
+  }
+  else if (op === "mM") {
+    out = Math.pow(1 + vals.ic / 100, vals.n) - 1;
+  }
+  else if (op === "ef") {
+    out = (vals.ik / 100) / vals.k;
+  }
+  else if (op === "js_ef") {
+    const rateDays = periods.find(p => p.value === vals.ic_period)?.days || 30;
+    const timeDays = periods.find(p => p.value === vals.n_period)?.days || 30;
+    const n_adj = vals.n * (timeDays / rateDays);
+    out = (vals.ic / 100) / (1 - (vals.ic / 100) * n_adj);
+  }
+  else if (op === "js_dc") {
+    const rateDays = periods.find(p => p.value === vals.i_period)?.days || 30;
+    const timeDays = periods.find(p => p.value === vals.n_period)?.days || 30;
+    const n_adj = vals.n * (timeDays / rateDays);
+    out = (vals.i / 100) / (1 + (vals.i / 100) * n_adj);
+  }
 
   setResult(defs.te.result, `Nova taxa = ${formats.num6(out)} (${formats.pct(out)})`, false);
 }
@@ -519,16 +541,24 @@ function calcTec() {
 
   let out;
   if (op === "js_ef") {
+    const rateDays = periods.find(p => p.value === vals.ic_period)?.days || 30;
+    const timeDays = periods.find(p => p.value === vals.n_period)?.days || 30;
+    const n_adj = vals.n * (timeDays / rateDays);
+
     const icUnit = vals.ic / 100;
-    if (1 - icUnit * vals.n <= 0) throw new Error("Valores invalidos (denominador <= 0).");
-    out = icUnit / (1 - icUnit * vals.n);
+    if (1 - icUnit * n_adj <= 0) throw new Error("Valores invalidos (denominador <= 0).");
+    out = icUnit / (1 - icUnit * n_adj);
   }
-  if (op === "js_dc") {
+  else if (op === "js_dc") {
+    const rateDays = periods.find(p => p.value === vals.i_period)?.days || 30;
+    const timeDays = periods.find(p => p.value === vals.n_period)?.days || 30;
+    const n_adj = vals.n * (timeDays / rateDays);
+
     const iUnit = vals.i / 100;
-    if (1 + iUnit * vals.n <= 0) throw new Error("Valores invalidos (denominador <= 0).");
-    out = iUnit / (1 + iUnit * vals.n);
+    if (1 + iUnit * n_adj <= 0) throw new Error("Valores invalidos (denominador <= 0).");
+    out = iUnit / (1 + iUnit * n_adj);
   }
-  if (op === "jc_ef") {
+  else if (op === "jc_ef") {
     if (vals.k === 0) throw new Error("k nao pode ser zero.");
     out = (vals.ik / 100) / vals.k;
   }
