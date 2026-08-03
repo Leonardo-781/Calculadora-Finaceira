@@ -684,7 +684,7 @@ function updateActiveCard() {
   if (visorMode && visorValue && targetCard) {
     const modeName = targetCard.querySelector("h2").textContent;
     const resultElement = targetCard.querySelector(".result");
-    const currentResultText = (resultElement && resultElement.textContent.trim()) ? resultElement.textContent : "READY";
+    const currentResultText = (resultElement && resultElement.textContent.trim()) ? resultElement.textContent : "-";
     visorMode.textContent = `MODE: ${modeName.toUpperCase()}`;
     visorValue.textContent = currentResultText;
     visorValue.style.color = "";
@@ -711,7 +711,7 @@ function setupHoverVisor() {
       if (targetCard) {
         const modeName = targetCard.querySelector("h2").textContent;
         const resultElement = targetCard.querySelector(".result");
-        const currentResultText = (resultElement && resultElement.textContent.trim()) ? resultElement.textContent : "READY";
+        const currentResultText = (resultElement && resultElement.textContent.trim()) ? resultElement.textContent : "-";
         visorMode.textContent = `MODE: ${modeName.toUpperCase()}`;
         visorValue.textContent = currentResultText;
         visorValue.style.color = "";
