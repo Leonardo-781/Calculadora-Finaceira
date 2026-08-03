@@ -4,6 +4,17 @@ const formats = {
   pct: (v) => `${(Number(v) * 100).toFixed(2)}%`,
 };
 
+const periods = [
+  { value: "daily", label: "a.d. (ao dia)", days: 1 },
+  { value: "weekly", label: "a.sem. (semanal)", days: 7 },
+  { value: "monthly", label: "a.m. (ao mês)", days: 30 },
+  { value: "bimonthly", label: "a.b. (ao bimestre)", days: 60 },
+  { value: "quarterly", label: "a.t. (ao trimestre)", days: 90 },
+  { value: "quadrimestral", label: "a.q. (ao quadrimestre)", days: 120 },
+  { value: "semiannual", label: "a.s. (ao semestre)", days: 180 },
+  { value: "yearly", label: "a.a. (ao ano)", days: 360 },
+];
+
 const defs = {
   js: {
     select: "js-op",
@@ -69,9 +80,21 @@ const defs = {
     fieldsWrap: "te-fields",
     result: "te-result",
     ops: {
-      mm: { label: "Maior para Menor", inputs: ["n", "ic"] },
-      mM: { label: "Menor para Maior", inputs: ["n", "ic"] },
-      ef: { label: "Taxa Efetiva (i = ik/k)", inputs: ["ik", "k"] },
+      mm: { label: "Maior para Menor (Composta)", inputs: ["n", "ic"] },
+      mM: { label: "Menor para Maior (Composta)", inputs: ["n", "ic"] },
+      ef: { label: "Taxa Efetiva Composta (i = ik/k)", inputs: ["ik", "k"] },
+      js_ef: { label: "Taxa Efetiva Simples (Juros Simples)", inputs: ["ic", "n"] },
+      js_dc: { label: "Taxa de Desconto Simples (Juros Simples)", inputs: ["i", "n"] },
+    },
+  },
+  tec: {
+    select: "tec-op",
+    fieldsWrap: "tec-fields",
+    result: "tec-result",
+    ops: {
+      js_ef: { label: "Desconto Comercial -> Taxa Efetiva (Simples)", inputs: ["ic", "n"] },
+      js_dc: { label: "Taxa Efetiva -> Desconto Comercial (Simples)", inputs: ["i", "n"] },
+      jc_ef: { label: "Taxa Nominal -> Taxa Efetiva (Composta)", inputs: ["ik", "k"] },
     },
   },
 };
@@ -84,11 +107,11 @@ const inputLabels = {
   A: "Valor Atual (A)",
   Dc: "Desconto Comercial (Dc)",
   Dr: "Desconto Racional (Dr)",
-  i: "Taxa unitaria (i)",
+  i: "Taxa (i %)",
   n: "Tempo (n)",
   t: "Numero da prestacao (t)",
-  ic: "Taxa conhecida (ic)",
-  ik: "Taxa nominal (ik)",
+  ic: "Taxa conhecida (ic %)",
+  ik: "Taxa nominal (ik %)",
   k: "Periodo (k)",
 };
 
@@ -109,15 +132,65 @@ function buildDynamicCalculator(key) {
     fieldsWrap.innerHTML = "";
 
     opCfg.inputs.forEach((name) => {
+      const fieldGroup = document.createElement("div");
+      fieldGroup.className = "field-group";
+
       const label = document.createElement("label");
+      label.textContent = inputLabels[name] || name;
+      fieldGroup.appendChild(label);
+
+      const inputWrap = document.createElement("div");
+      inputWrap.className = "input-wrap";
+
       const input = document.createElement("input");
       input.type = "number";
       input.step = "any";
       input.dataset.name = name;
-      label.textContent = inputLabels[name] || name;
-      fieldsWrap.appendChild(label);
-      fieldsWrap.appendChild(input);
+      inputWrap.appendChild(input);
+
+      // Se for taxa ou tempo (e não for SAC), adiciona seletor de período
+      if (key !== "sac" && (name === "i" || name === "ic" || name === "ik" || name === "n")) {
+        const periodSel = document.createElement("select");
+        periodSel.dataset.name = name + "_period";
+        periods.forEach((p) => {
+          const opt = document.createElement("option");
+          opt.value = p.value;
+          opt.textContent = p.label;
+          if (p.value === "monthly") opt.selected = true;
+          periodSel.appendChild(opt);
+        });
+        inputWrap.appendChild(periodSel);
+      }
+
+      fieldGroup.appendChild(inputWrap);
+      fieldsWrap.appendChild(fieldGroup);
     });
+
+    // Se o resultado for taxa ou tempo (e não for SAC), adiciona o seletor do período do resultado
+    if (key !== "sac" && (select.value === "i" || select.value === "ic" || select.value === "ik" || select.value === "n" || select.value === "t")) {
+      const fieldGroup = document.createElement("div");
+      fieldGroup.className = "field-group";
+
+      const label = document.createElement("label");
+      label.textContent = (select.value === "n" || select.value === "t") ? "Calcular tempo em:" : "Calcular taxa em:";
+      fieldGroup.appendChild(label);
+
+      const inputWrap = document.createElement("div");
+      inputWrap.className = "input-wrap";
+
+      const outSel = document.createElement("select");
+      outSel.dataset.name = "out_period";
+      periods.forEach((p) => {
+        const opt = document.createElement("option");
+        opt.value = p.value;
+        opt.textContent = p.label;
+        if (p.value === "monthly") opt.selected = true;
+        outSel.appendChild(opt);
+      });
+      inputWrap.appendChild(outSel);
+      fieldGroup.appendChild(inputWrap);
+      fieldsWrap.appendChild(fieldGroup);
+    }
   };
 
   select.addEventListener("change", renderFields);
@@ -126,14 +199,25 @@ function buildDynamicCalculator(key) {
 
 function getValuesByWrap(wrapId) {
   const values = {};
-  document.querySelectorAll(`#${wrapId} input`).forEach((inp) => {
-    values[inp.dataset.name] = Number(inp.value);
+  document.querySelectorAll(`#${wrapId} input, #${wrapId} textarea`).forEach((inp) => {
+    if (inp.dataset.name) {
+      values[inp.dataset.name] = Number(inp.value);
+    }
+  });
+  document.querySelectorAll(`#${wrapId} select`).forEach((sel) => {
+    if (sel.dataset.name) {
+      values[sel.dataset.name] = sel.value;
+    }
   });
   return values;
 }
 
 function mustFinite(values) {
-  return Object.values(values).every((v) => Number.isFinite(v));
+  // Ignora campos de texto e períodos na verificação de números finitos
+  return Object.entries(values).every(([k, v]) => {
+    if (k.endsWith("_period") || k === "out_period" || k === "fluxos") return true;
+    return Number.isFinite(v);
+  });
 }
 
 function attachActions() {
@@ -144,8 +228,32 @@ function attachActions() {
 
 function setResult(id, text, isError = false) {
   const el = document.getElementById(id);
-  el.textContent = text;
-  el.style.background = isError ? "#fee2e2" : "#e2e8f0";
+  if (el) {
+    el.textContent = text;
+    if (isError) {
+      el.style.borderColor = "rgba(239, 68, 68, 0.4)";
+      el.style.color = "#ef4444";
+    } else {
+      el.style.borderColor = "";
+      el.style.color = "";
+    }
+  }
+
+  // Sincroniza o visor
+  const visorMode = document.querySelector(".visor-mode");
+  const visorValue = document.querySelector(".visor-value");
+  if (visorMode && visorValue) {
+    const activeCard = document.querySelector(".card.active");
+    const modeName = activeCard ? activeCard.querySelector("h2").textContent : "FINANCE";
+    visorMode.textContent = `MODE: ${modeName.toUpperCase()}`;
+    if (isError) {
+      visorValue.textContent = "ERROR";
+      visorValue.style.color = "#f87171";
+    } else {
+      visorValue.textContent = text;
+      visorValue.style.color = "";
+    }
+  }
 }
 
 function runCalc(action) {
@@ -168,6 +276,9 @@ function runCalc(action) {
         break;
       case "te":
         calcTaxas();
+        break;
+      case "tec":
+        calcTec();
         break;
       case "fvp":
         calcFvp();
@@ -193,16 +304,35 @@ function calcJurosSimples() {
   const vals = getValuesByWrap(defs.js.fieldsWrap);
   if (!mustFinite(vals)) throw new Error("Preencha todos os campos numericos.");
 
+  const rateDays = periods.find(p => p.value === vals.i_period)?.days || 30;
+  const timeDays = periods.find(p => p.value === vals.n_period)?.days || 30;
+  const outDays = periods.find(p => p.value === vals.out_period)?.days || 30;
+
   if (op === "i" && vals.n === 0) throw new Error("n nao pode ser zero.");
   if (op === "n" && vals.i === 0) throw new Error("i nao pode ser zero.");
   if ((op === "i" || op === "n") && vals.VP === 0) throw new Error("VP nao pode ser zero.");
 
   let out;
-  if (op === "vp") out = vals.VF / (1 + vals.i * vals.n);
-  if (op === "vf") out = vals.VP * (1 + vals.i * vals.n);
-  if (op === "j") out = vals.VP * vals.i * vals.n;
-  if (op === "i") out = ((vals.VF / vals.VP) - 1) / vals.n;
-  if (op === "n") out = ((vals.VF / vals.VP) - 1) / vals.i;
+  if (op === "vp") {
+    const i_adj = (vals.i / 100) * (timeDays / rateDays);
+    out = vals.VF / (1 + i_adj * vals.n);
+  }
+  else if (op === "vf") {
+    const i_adj = (vals.i / 100) * (timeDays / rateDays);
+    out = vals.VP * (1 + i_adj * vals.n);
+  }
+  else if (op === "j") {
+    const i_adj = (vals.i / 100) * (timeDays / rateDays);
+    out = vals.VP * i_adj * vals.n;
+  }
+  else if (op === "i") {
+    const i_n_period = ((vals.VF / vals.VP) - 1) / vals.n;
+    out = i_n_period * (outDays / timeDays);
+  }
+  else if (op === "n") {
+    const i_adj = (vals.i / 100) * (outDays / rateDays);
+    out = ((vals.VF / vals.VP) - 1) / i_adj;
+  }
 
   const label = { vp: "VP", vf: "VF", j: "J", i: "i", n: "n" }[op];
   const text = op === "i"
@@ -218,16 +348,35 @@ function calcJurosCompostos() {
   const vals = getValuesByWrap(defs.jc.fieldsWrap);
   if (!mustFinite(vals)) throw new Error("Preencha todos os campos numericos.");
 
+  const rateDays = periods.find(p => p.value === vals.i_period)?.days || 30;
+  const timeDays = periods.find(p => p.value === vals.n_period)?.days || 30;
+  const outDays = periods.find(p => p.value === vals.out_period)?.days || 30;
+
   if ((op === "i" || op === "n") && vals.VP === 0) throw new Error("VP nao pode ser zero.");
   if (op === "i" && vals.n === 0) throw new Error("n nao pode ser zero.");
-  if (op === "n" && vals.i === -1) throw new Error("i nao pode ser -1.");
+  if (op === "n" && vals.i === -100) throw new Error("i nao pode ser -100%.");
 
   let out;
-  if (op === "vp") out = vals.VF / Math.pow(1 + vals.i, vals.n);
-  if (op === "vf") out = vals.VP * Math.pow(1 + vals.i, vals.n);
-  if (op === "j") out = vals.VP * (Math.pow(1 + vals.i, vals.n) - 1);
-  if (op === "i") out = Math.pow(vals.VF / vals.VP, 1 / vals.n) - 1;
-  if (op === "n") out = Math.log10(vals.VF / vals.VP) / Math.log10(1 + vals.i);
+  if (op === "vp") {
+    const i_adj = Math.pow(1 + vals.i / 100, timeDays / rateDays) - 1;
+    out = vals.VF / Math.pow(1 + i_adj, vals.n);
+  }
+  else if (op === "vf") {
+    const i_adj = Math.pow(1 + vals.i / 100, timeDays / rateDays) - 1;
+    out = vals.VP * Math.pow(1 + i_adj, vals.n);
+  }
+  else if (op === "j") {
+    const i_adj = Math.pow(1 + vals.i / 100, timeDays / rateDays) - 1;
+    out = vals.VP * (Math.pow(1 + i_adj, vals.n) - 1);
+  }
+  else if (op === "i") {
+    const i_n_period = Math.pow(vals.VF / vals.VP, 1 / vals.n) - 1;
+    out = Math.pow(1 + i_n_period, outDays / timeDays) - 1;
+  }
+  else if (op === "n") {
+    const i_adj = Math.pow(1 + vals.i / 100, outDays / rateDays) - 1;
+    out = Math.log10(vals.VF / vals.VP) / Math.log10(1 + i_adj);
+  }
 
   const label = { vp: "VP", vf: "VF", j: "J", i: "i", n: "n" }[op];
   const text = op === "i"
@@ -243,16 +392,35 @@ function calcDescComercial() {
   const vals = getValuesByWrap(defs.dcc.fieldsWrap);
   if (!mustFinite(vals)) throw new Error("Preencha todos os campos numericos.");
 
+  const rateDays = periods.find(p => p.value === vals.i_period)?.days || 30;
+  const timeDays = periods.find(p => p.value === vals.n_period)?.days || 30;
+  const outDays = periods.find(p => p.value === vals.out_period)?.days || 30;
+
   if ((op === "i" || op === "t") && vals.N === 0) throw new Error("N nao pode ser zero.");
   if (op === "i" && vals.n === 0) throw new Error("n nao pode ser zero.");
-  if ((op === "n" || op === "t") && vals.i === 1) throw new Error("i nao pode ser 1.");
+  if ((op === "n" || op === "t") && vals.i === 100) throw new Error("i nao pode ser 100%.");
 
   let out;
-  if (op === "a") out = vals.N * Math.pow(1 - vals.i, vals.n);
-  if (op === "n") out = vals.A / Math.pow(1 - vals.i, vals.n);
-  if (op === "dc") out = vals.N * (1 - Math.pow(1 - vals.i, vals.n));
-  if (op === "i") out = 1 - Math.pow(vals.A / vals.N, 1 / vals.n);
-  if (op === "t") out = Math.log(vals.A / vals.N) / Math.log(1 - vals.i);
+  if (op === "a") {
+    const d_adj = 1 - Math.pow(1 - vals.i / 100, timeDays / rateDays);
+    out = vals.N * Math.pow(1 - d_adj, vals.n);
+  }
+  else if (op === "n") {
+    const d_adj = 1 - Math.pow(1 - vals.i / 100, timeDays / rateDays);
+    out = vals.A / Math.pow(1 - d_adj, vals.n);
+  }
+  else if (op === "dc") {
+    const d_adj = 1 - Math.pow(1 - vals.i / 100, timeDays / rateDays);
+    out = vals.N * (1 - Math.pow(1 - d_adj, vals.n));
+  }
+  else if (op === "i") {
+    const d_n_period = 1 - Math.pow(vals.A / vals.N, 1 / vals.n);
+    out = 1 - Math.pow(1 - d_n_period, outDays / timeDays);
+  }
+  else if (op === "t") {
+    const d_adj = 1 - Math.pow(1 - vals.i / 100, outDays / rateDays);
+    out = Math.log(vals.A / vals.N) / Math.log(1 - d_adj);
+  }
 
   const label = { a: "A", n: "N", dc: "Dc", i: "i", t: "n" }[op];
   const text = op === "i"
@@ -268,17 +436,36 @@ function calcDescRacional() {
   const vals = getValuesByWrap(defs.drc.fieldsWrap);
   if (!mustFinite(vals)) throw new Error("Preencha todos os campos numericos.");
 
+  const rateDays = periods.find(p => p.value === vals.i_period)?.days || 30;
+  const timeDays = periods.find(p => p.value === vals.n_period)?.days || 30;
+  const outDays = periods.find(p => p.value === vals.out_period)?.days || 30;
+
   if ((op === "i" || op === "t") && vals.A === 0) throw new Error("A nao pode ser zero.");
   if ((op === "i" || op === "t") && vals.N <= 0) throw new Error("N deve ser maior que zero.");
   if (op === "i" && vals.n === 0) throw new Error("n nao pode ser zero.");
-  if (op === "t" && vals.i === -1) throw new Error("i nao pode ser -1.");
+  if (op === "t" && vals.i === -100) throw new Error("i nao pode ser -100%.");
 
   let out;
-  if (op === "a") out = vals.N * Math.pow(1 + vals.i, -vals.n);
-  if (op === "n") out = vals.A * Math.pow(1 + vals.i, vals.n);
-  if (op === "dr") out = vals.N * (1 - Math.pow(1 + vals.i, -vals.n));
-  if (op === "i") out = Math.pow(vals.N / vals.A, 1 / vals.n) - 1;
-  if (op === "t") out = (Math.log(vals.N) - Math.log(vals.A)) / Math.log(1 + vals.i);
+  if (op === "a") {
+    const i_adj = Math.pow(1 + vals.i / 100, timeDays / rateDays) - 1;
+    out = vals.N * Math.pow(1 + i_adj, -vals.n);
+  }
+  else if (op === "n") {
+    const i_adj = Math.pow(1 + vals.i / 100, timeDays / rateDays) - 1;
+    out = vals.A * Math.pow(1 + i_adj, vals.n);
+  }
+  else if (op === "dr") {
+    const i_adj = Math.pow(1 + vals.i / 100, timeDays / rateDays) - 1;
+    out = vals.N * (1 - Math.pow(1 + i_adj, -vals.n));
+  }
+  else if (op === "i") {
+    const i_n_period = Math.pow(vals.N / vals.A, 1 / vals.n) - 1;
+    out = Math.pow(1 + i_n_period, outDays / timeDays) - 1;
+  }
+  else if (op === "t") {
+    const i_adj = Math.pow(1 + vals.i / 100, outDays / rateDays) - 1;
+    out = (Math.log(vals.N) - Math.log(vals.A)) / Math.log(1 + i_adj);
+  }
 
   const label = { a: "A", n: "N", dr: "Dr", i: "i", t: "n" }[op];
   const text = op === "i"
@@ -299,8 +486,8 @@ function calcSac() {
   let out;
 
   if (op === "amort") out = amort;
-  if (op === "pmt") out = amort * (1 + (vals.n - vals.t + 1) * vals.i);
-  if (op === "j") out = amort * (vals.n - vals.t + 1) * vals.i;
+  if (op === "pmt") out = amort * (1 + (vals.n - vals.t + 1) * (vals.i / 100));
+  if (op === "j") out = amort * (vals.n - vals.t + 1) * (vals.i / 100);
   if (op === "sd") out = vals.VP - amort * vals.t;
 
   const label = { amort: "Amortizacao", pmt: "PMT", j: "Juros", sd: "Saldo Devedor" }[op];
@@ -316,16 +503,42 @@ function calcTaxas() {
   if (op === "ef" && vals.k === 0) throw new Error("k nao pode ser zero.");
 
   let out;
-  if (op === "mm") out = Math.pow(1 + vals.ic, 1 / vals.n) - 1;
-  if (op === "mM") out = Math.pow(1 + vals.ic, vals.n) - 1;
-  if (op === "ef") out = vals.ik / vals.k;
+  if (op === "mm") out = Math.pow(1 + vals.ic / 100, 1 / vals.n) - 1;
+  if (op === "mM") out = Math.pow(1 + vals.ic / 100, vals.n) - 1;
+  if (op === "ef") out = (vals.ik / 100) / vals.k;
+  if (op === "js_ef") out = (vals.ic / 100) / (1 - (vals.ic / 100) * vals.n);
+  if (op === "js_dc") out = (vals.i / 100) / (1 + (vals.i / 100) * vals.n);
 
   setResult(defs.te.result, `Nova taxa = ${formats.num6(out)} (${formats.pct(out)})`, false);
 }
 
+function calcTec() {
+  const op = document.getElementById(defs.tec.select).value;
+  const vals = getValuesByWrap(defs.tec.fieldsWrap);
+  if (!mustFinite(vals)) throw new Error("Preencha todos os campos numericos.");
+
+  let out;
+  if (op === "js_ef") {
+    const icUnit = vals.ic / 100;
+    if (1 - icUnit * vals.n <= 0) throw new Error("Valores invalidos (denominador <= 0).");
+    out = icUnit / (1 - icUnit * vals.n);
+  }
+  if (op === "js_dc") {
+    const iUnit = vals.i / 100;
+    if (1 + iUnit * vals.n <= 0) throw new Error("Valores invalidos (denominador <= 0).");
+    out = iUnit / (1 + iUnit * vals.n);
+  }
+  if (op === "jc_ef") {
+    if (vals.k === 0) throw new Error("k nao pode ser zero.");
+    out = (vals.ik / 100) / vals.k;
+  }
+
+  setResult(defs.tec.result, `Nova taxa = ${formats.num6(out)} (${formats.pct(out)})`, false);
+}
+
 function calcFvp() {
   const n = Number(document.getElementById("fvp-n").value);
-  const i = Number(document.getElementById("fvp-i").value);
+  const i = Number(document.getElementById("fvp-i").value) / 100;
   const vp = Number(document.getElementById("fvp-vp").value);
   const mult = Number(document.getElementById("fvp-mult").value);
 
@@ -360,7 +573,7 @@ function parseFluxos(raw) {
 
 function calcVpl() {
   const I = Number(document.getElementById("vpl-i0").value);
-  const i = Number(document.getElementById("vpl-i").value);
+  const i = Number(document.getElementById("vpl-i").value) / 100;
   const n = Number(document.getElementById("vpl-n").value);
   const fluxos = parseFluxos(document.getElementById("vpl-fluxos").value);
   const temVR = document.getElementById("vpl-tem-vr").checked;
@@ -404,6 +617,83 @@ function setupVplResidualToggle() {
   sync();
 }
 
-["js", "jc", "dcc", "drc", "sac", "te"].forEach(buildDynamicCalculator);
+const modeNames = {
+  "#juros-simples": "Juros Simples",
+  "#juros-compostos": "Juros Compostos",
+  "#desc-comercial": "Desc. Comercial Composto",
+  "#desc-racional": "Desc. Racional Composto",
+  "#sac": "Amortização SAC",
+  "#taxas": "Taxas Equivalentes",
+  "#taxa-efetiva-comercial": "Taxa Comercial vs Efetiva",
+  "#fvp": "FVP (Price)",
+  "#vpl": "VPL (Valor Presente Líquido)"
+};
+
+function updateActiveCard() {
+  const hash = window.location.hash || "#juros-simples";
+  
+  document.querySelectorAll("main.grid .card").forEach((card) => {
+    card.classList.remove("active");
+  });
+
+  const targetCard = document.querySelector(hash);
+  if (targetCard) {
+    targetCard.classList.add("active");
+  }
+
+  document.querySelectorAll(".nav-item").forEach((link) => {
+    if (link.getAttribute("href") === hash) {
+      link.classList.add("active");
+    } else {
+      link.classList.remove("active");
+    }
+  });
+
+  const visorMode = document.querySelector(".visor-mode");
+  const visorValue = document.querySelector(".visor-value");
+  if (visorMode && visorValue && targetCard) {
+    const modeName = targetCard.querySelector("h2").textContent;
+    const resultElement = targetCard.querySelector(".result");
+    const currentResultText = (resultElement && resultElement.textContent.trim()) ? resultElement.textContent : "READY";
+    visorMode.textContent = `MODE: ${modeName.toUpperCase()}`;
+    visorValue.textContent = currentResultText;
+    visorValue.style.color = "";
+  }
+}
+
+function setupHoverVisor() {
+  const visorMode = document.querySelector(".visor-mode");
+  const visorValue = document.querySelector(".visor-value");
+  if (!visorMode || !visorValue) return;
+
+  document.querySelectorAll(".nav-item").forEach((link) => {
+    const hash = link.getAttribute("href");
+    const name = modeNames[hash] || "";
+
+    link.addEventListener("mouseenter", () => {
+      visorMode.textContent = "PREVIEW MODE";
+      visorValue.textContent = name.toUpperCase();
+    });
+
+    link.addEventListener("mouseleave", () => {
+      const activeHash = window.location.hash || "#juros-simples";
+      const targetCard = document.querySelector(activeHash);
+      if (targetCard) {
+        const modeName = targetCard.querySelector("h2").textContent;
+        const resultElement = targetCard.querySelector(".result");
+        const currentResultText = (resultElement && resultElement.textContent.trim()) ? resultElement.textContent : "READY";
+        visorMode.textContent = `MODE: ${modeName.toUpperCase()}`;
+        visorValue.textContent = currentResultText;
+        visorValue.style.color = "";
+      }
+    });
+  });
+}
+
+["js", "jc", "dcc", "drc", "sac", "te", "tec"].forEach(buildDynamicCalculator);
 setupVplResidualToggle();
 attachActions();
+setupHoverVisor();
+
+window.addEventListener("hashchange", updateActiveCard);
+window.addEventListener("DOMContentLoaded", updateActiveCard);
